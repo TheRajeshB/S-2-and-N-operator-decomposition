@@ -1,0 +1,389 @@
+from openfermion import FermionOperator, get_sparse_operator
+from openfermion import hermitian_conjugated as hc
+import numpy as np
+import scipy
+from scipy.linalg import eigh
+import itertools
+from itertools import product
+import sympy
+import pickle
+
+# #for ranks greater than 7, need to define combs of appropriate length like in research code eqn 2
+# n=1
+# t = range(4)
+# # A =( list(product(set(t),repeat = 5)))
+# # print(A)
+# values = [[0, 1],[3,4]]
+
+# a= list(itertools.permutations(values,3))
+# print(a)
+# for i in a:
+#     print(i[0])
+i_alpha, i_beta, a_alpha, a_beta, b_alpha, b_beta = 0, 1, 2, 3, 4, 5 
+values = [i_alpha, i_beta, a_alpha, a_beta, b_alpha, b_beta]
+n_qubits=6
+
+half_k1 = FermionOperator('{}^ {}^ {} {}'.format(a_alpha, b_beta, i_beta, i_alpha))
+
+half_k2 = FermionOperator('{}^ {}^ {} {}'.format(a_beta, b_alpha, i_beta, i_alpha))
+
+k1 = half_k1 - hc(half_k1)
+k2 = half_k2 - hc(half_k2)
+T_iiab = k1 + k2
+T_iiab_operator = get_sparse_operator(T_iiab, n_qubits )
+T_iiab_matr = T_iiab_operator.toarray()
+#OPERATOR COMBS for rank 7 
+
+# 6A + 1B type operators
+b1 = list(itertools.combinations(values,1))
+b6 = list(itertools.combinations(values,6))
+b16  = list(itertools.product(b1,b6))
+b61 = list(itertools.product(b6,b1))
+
+#5A + 2B
+b2 = list(itertools.combinations(values,2))
+b5 = list(itertools.combinations(values,5))
+b25  = list(itertools.product(b2,b5))
+b52 = list(itertools.product(b5,b2))
+
+#4A + 3B
+b3 = list(itertools.combinations(values,3))
+b4 = list(itertools.combinations(values,4))
+b34  = list(itertools.product(b3,b4))
+b43 = list(itertools.product(b4,b3))
+
+#OPERATOR COMBS for rank 5
+b0 = list(itertools.combinations(values,0))
+
+b05 = list(itertools.product(b0,b5))
+b14 = list(itertools.product(b1,b4))
+b23 = list(itertools.product(b2,b3))
+b32 = list(itertools.product(b3,b2))
+b41 = list(itertools.product(b4,b1))
+b50 = list(itertools.product(b5,b0))
+
+#Operator combs for rank 6
+b15 = list(itertools.product(b1,b5))
+b24 = list(itertools.product(b2,b4))
+b33 = list(itertools.product(b3,b3))
+b42 = list(itertools.product(b4,b2))
+b51 = list(itertools.product(b5,b1))
+#OPERATOR COMBS for rank 8 
+b26 = list(itertools.product(b2,b6))
+b35 = list(itertools.product(b3,b5))
+b44 = list(itertools.product(b4,b4))
+b53 = list(itertools.product(b5,b3))
+b62 = list(itertools.product(b6,b2))
+
+#OPERATOR COMBS for rank 9 
+b36 = list(itertools.product(b3,b6))
+b45 = list(itertools.product(b4,b5))
+b54 = list(itertools.product(b5,b4))
+b63 = list(itertools.product(b6,b3))
+
+#OPERATOR COMBS for rank 10 
+b46 = list(itertools.product(b4,b6))
+b55 = list(itertools.product(b5,b5))
+b64 = list(itertools.product(b6,b4))
+
+#OPERATOR COMBS for rank 11
+b56 = list(itertools.product(b5,b6))
+b65 = list(itertools.product(b6,b5))
+
+
+# print(b16[0])
+# print(b16[0][0])
+# #
+# # print(b61)
+# print(len(b25))
+# print(len(b43))
+def operators(qubits):
+    '''  function to get all non-zero operators strings, upto length n   '''
+    
+    #all combinations of len 1,2,3,4
+    a1 = ( list(product(set(range(qubits)),repeat = 1)))
+    a2 = ( list(product(set(range(qubits)),repeat = 2)))
+    a3 = ( list(product(set(range(qubits)),repeat = 3)))
+    a4 = ( list(product(set(range(qubits)),repeat = 4)))
+    # a5 = ( list(product(set(range(qubits)),repeat = 5)))
+    #a6 = ( list(product(set(range(qubits)),repeat = 6)))
+    #After A6, the sets get way too big, causing memory errors. SO we optimize
+    #by noting all operators are of the for Xa + Ya' and the X strings require combs of length X, as repition would make it go to zero 
+    # a7 = ( list(product(set(range(qubits)),repeat = 7)))
+    # a8 = ( list(product(set(range(qubits)),repeat = 8)))
+    # a9 = ( list(product(set(range(qubits)),repeat = 9)))
+    # a10= ( list(product(set(range(qubits)),repeat = 10)))
+    # a11= ( list(product(set(range(qubits)),repeat = 11)))
+    # a12= ( list(product(set(range(qubits)),repeat = 12)))
+    
+    # a1 = list(itertools.permutations(values,1))
+    # a2 = list(itertools.permutations(values,2))
+    # a3 = list(itertools.permutations(values,3))
+    # a4 = list(itertools.permutations(values,4))
+    
+    basis_operators=[]
+    
+    for i in a1 :
+        basis_operators.append(FermionOperator('{}^'.format(i[0])))
+        basis_operators.append(FermionOperator('{}'.format(i[0])))
+        
+    for i in a2 :
+        basis_operators.append(FermionOperator('{}^ {}'.format(i[0],i[1])))
+        basis_operators.append(FermionOperator('{} {}'.format(i[0],i[1])))
+        basis_operators.append(FermionOperator('{}^ {}^'.format(i[0],i[1])))
+        
+    for i in a3:
+        basis_operators.append(FermionOperator('{} {} {}'.format(i[0],i[1],i[2])))
+        basis_operators.append(FermionOperator('{}^ {} {}'.format(i[0],i[1],i[2])))
+        basis_operators.append(FermionOperator('{}^ {}^ {}'.format(i[0],i[1],i[2])))
+        basis_operators.append(FermionOperator('{}^ {}^ {}^'.format(i[0],i[1],i[2])))
+        
+    for i in a4:
+        basis_operators.append(FermionOperator('{} {} {} {}'.format(i[0],i[1],i[2],i[3])))
+        basis_operators.append(FermionOperator('{}^ {} {} {}'.format(i[0],i[1],i[2],i[3])))
+        basis_operators.append(FermionOperator('{}^ {}^ {} {}'.format(i[0],i[1],i[2],i[3])))
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {}'.format(i[0],i[1],i[2],i[3])))
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^'.format(i[0],i[1],i[2],i[3])))
+   
+    for tup in b05:
+        basis_operators.append(FermionOperator('{} {} {} {} {}'.format(tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4]))) 
+    for tup in b14:
+        basis_operators.append(FermionOperator('{}^ {} {} {} {}'.format(tup[0][0], tup[1][0], tup[1][1], tup[1][2], tup[1][3])) )
+    for tup in b23:
+        basis_operators.append(FermionOperator('{}^ {}^ {} {} {}'.format(tup[0][0], tup[0][1], tup[1][0], tup[1][1], tup[1][2])) )
+    for tup in b32:
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[1][0], tup[1][1])) )
+    for tup in b41:
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[1][0])) )
+    for tup in b50:
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4])) )
+    
+    
+    # for i in a5:
+    #     basis_operators.append(FermionOperator('{} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4])))
+    #     basis_operators.append(FermionOperator('{}^ {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {} {} {}'.format(i[0],i[1],i[2],i[3],i[4])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {}'.format(i[0],i[1],i[2],i[3],i[4])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}'.format(i[0],i[1],i[2],i[3],i[4])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^'.format(i[0],i[1],i[2],i[3],i[4])))
+   
+    #RANK 6 operators
+   
+    basis_operators.append(FermionOperator('{} {} {} {} {} {}'.format(0,1,2,3,4,5)))
+    for tup in b15:
+        basis_operators.append(FermionOperator('{}^ {} {} {} {} {}'.format(tup[0][0], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4])) )
+    for tup in b24:    
+        basis_operators.append(FermionOperator('{}^ {}^ {} {} {} {}'.format(tup[0][0], tup[0][1], tup[1][0], tup[1][1], tup[1][2], tup[1][3])) )
+    for tup in b33:
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[1][0], tup[1][1], tup[1][2])) )
+    for tup in b42:    
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[1][0], tup[1][1])) )
+    for tup in b51: 
+        basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[1][0])) )
+        
+    basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^'.format(0,1,2,3,4,5)))
+   
+    #ANY OPERATORS OF TYPE 7A + any B can be excluded by pidgeon hole.
+   #Moreover, if an operator of rank N is of form (N-1)A 1B, it has on n_qubits options (here,4)
+   #Even moreover, each a1/a2...etc can be made more efficient by taking smaller combination sets (as seein in research_code_eqn2)
+    
+   # #rank7 operators:
+    for tup in b16:   
+     basis_operators.append(FermionOperator('{}^ {} {} {} {} {} {}'.format(tup[0][0], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4], tup[1][5])) )
+    for tup in b25: 
+     basis_operators.append(FermionOperator('{}^ {}^ {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4])) )
+    for tup in b34: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[1][0], tup[1][1], tup[1][2], tup[1][3])) )
+    for tup in b43: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[1][0], tup[1][1], tup[1][2])) )
+    for tup in b52: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[1][0], tup[1][1])) )
+    for tup in b61 : 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[0][5], tup[1][0])) )
+    
+   #  # basis_operators.append(a1b6)
+   #  # basis_operators.append(a2b5)
+   #  # basis_operators.append(a3b4)
+   #  # basis_operators.append(a4b3)
+   #  # basis_operators.append(a5b2)
+   #  # basis_operators.append(a6b1)    
+    for tup in b26: 
+     basis_operators.append(FermionOperator('{}^ {}^ {} {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4], tup[1][5])) )
+    for tup in b35:
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4])) )
+    for tup in b44: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[1][0], tup[1][1], tup[1][2], tup[1][3])) )
+    for tup in b53: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[1][0], tup[1][1], tup[1][2])) )
+    for tup in b62: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[0][5], tup[1][0], tup[1][1])) )
+    
+    #RANK 9 OPERATORS
+    for tup in b36:
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4], tup[1][5])))
+    for tup in b45: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4])))
+    for tup in b54: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[1][0], tup[1][1], tup[1][2], tup[1][3])))
+    for tup in b63: 
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[0][5], tup[1][0], tup[1][1], tup[1][2])))
+    
+    #RANK 10 Operators
+    for tup in b46:
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4], tup[1][5])))
+    for tup in b55:
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4])))
+    for tup in b64:
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[0][5], tup[1][0], tup[1][1], tup[1][2], tup[1][3])))
+     
+     
+    #Rank 11 Operators
+    for tup in b56:
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4], tup[1][5])))
+    for tup in b65:
+     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {} {} {} {}'.format(tup[0][0], tup[0][1], tup[0][2], tup[0][3], tup[0][4], tup[0][5], tup[1][0], tup[1][1], tup[1][2], tup[1][3], tup[1][4])))
+   
+    
+    
+    # for i in a7:
+    #     # basis_operators.append(FermionOperator('{} {} {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+    #     basis_operators.append(FermionOperator('{}^ {} {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+    #     # basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {}^'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])))
+     
+    # for i in a8: 
+    #     basis_operators.append(FermionOperator('{}^ {}^ {} {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7]))) 
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7])))
+    
+    # for i in a9:
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {} {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8])))
+    
+    # for i in a10:
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {} {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9])))
+     
+    # for i in a11:
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {} {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9],i[10])))
+    #     basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {} {} {} {}'.format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9],i[10])))
+    
+    #RANK 12 Operator:    
+    basis_operators.append(FermionOperator('{}^ {}^ {}^ {}^ {}^ {}^ {} {} {} {} {} {}'.format(0,1,2,3,4,5,0,1,2,3,4,5)))
+    basis = []
+    matrices_non0 = []#list for indexes of empty matrices
+    for i in basis_operators:
+        operator = get_sparse_operator(i, qubits)
+        matrix = operator.toarray()
+        rows = np.shape(matrix)[0]
+        cols = np.shape(matrix)[1]
+        
+        # if np.count_nonzero(matrix) == 0:
+        #     matrices_0.append(basis_operators.index(i))
+        # if matrix.sum() != 0:
+        if np.count_nonzero(matrix) != 0: #eliminates matrices with only zeros
+            matrices_non0.append(i) 
+            basis.append(matrix)
+    basis.append(np.identity(2**qubits)) #adding basis element
+        # for i in basis:
+        #     for j in basis:
+        #         if (i - j).all() == np.zeros((rows,cols)).all():
+        #             basis.remove(j)
+    
+
+    return basis_operators,basis, matrices_non0
+basis_result = operators(n_qubits)
+
+# print(len(basis_result[0]),len(basis_result[1]))
+# print(basis_result[2],len(basis_result[2]))
+# print(len(basis_result[0]))
+# print(len(basis_result[1]))
+
+basis = basis_result[1]
+A = []
+for i in basis:
+    z = i.flatten()
+    A.append(z) #setting rows of A as column matrices (n_rows = basis length)
+    
+print('shape of A is with basis vectors as rows, before linear independency check:',np.shape(A))
+
+#checking for linear dependencies in A (linearly dependent vectors have eigenvalue =0)
+# X,Y = eigh(A)
+A = np.transpose(A) #making it so columns of A are the basis vectors    
+
+# print('A1 is :', A[1])               # rref converts matrix to reduced row echelon form
+_, indexes = sympy.Matrix(A).T.rref()  # T is for transpose, indexes = pivots cols in A
+print('number of  LI vectors',len(indexes))
+# print(indexes) #thus in transpose(A), these are the linearly indepedent rows, which we want to save
+# for i in indexes:
+#     print(A[i])
+
+A_T = np.transpose(A) #again, rows are basis vectors
+AT_clear = []
+for i in (indexes):
+    AT_clear.append(A_T[i]) #adding linearly independent rows
+    
+# print(len(AT_clear))
+A_clear = np.transpose(AT_clear)
+print('shape of A_clear:',np.shape(A_clear))
+# # Constructing occupancy = 0 doubles state 
+
+
+
+
+
+# print(np.shape(T_iiab_matr))
+
+eigenvalues_0, eigenvectors_0 = eigh(T_iiab_matr)
+
+def diagonal_matrix(eigenvalues,eigenvectors):
+    D = np.zeros(np.shape(eigenvectors))
+    for i in range(len(eigenvalues)):
+    
+    
+        D[i,i] = eigenvalues[i] #setting eigenvalues as diagonal element
+    return D
+
+UT = eigenvectors_0
+U = np.transpose(UT)
+D = diagonal_matrix(eigenvalues_0,eigenvectors_0)
+
+
+# print(np.matmul(U,UT)) #checking if U is unitary 
+
+# NEXT I need Ax = b , x = coefficient matrix, A = basis matrix, b = our matrix of choice
+
+#first, I construct A by flattening vectors and adding them as columns
+# print(np.shape(basis))
+flatU = U.flatten()
+# flatU2 = np.transpose(flatU)
+# print(np.shape(flatU))
+# print(np.shape(flatU2))
+solution = np.linalg.lstsq(A_clear, flatU,rcond=None)
+# solution = np.linalg.solve(A_clear,flatU)
+# print(solution[0],solution[1])
+# file = open('omega2_U_part1_coeffs.pkl', 'wb')
+# pickle.dump(solution[0], file)
+# file.close()
+
+# file2 = open('omega2_U_part1_total_basis_operators.pkl', 'wb')
+# pickle.dump(basis_result[0], file2)
+# file2.close()
+
+# file5 = open('omega2_U_part1_nonzero_matrices.pkl', 'wb')
+# pickle.dump(basis_result[2], file5)
+# file5.close()
+
+
+# file4 = open('omega2_U_part1_indexes.pkl', 'wb')
+# pickle.dump(indexes, file4)
+# file4.close()
